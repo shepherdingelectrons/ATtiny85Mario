@@ -1,5 +1,7 @@
 # ATtiny85Mario
-**TinyMario**: Mario-style game with sound effects and music on twin OLED displays driven by ATtiny85 AVR
+A project (that will be detailed) on my blog: https://shepherdingelectrons.blogspot.com/
+**TinyMario**
+Mario-style game with sound effects and music on twin OLED displays driven by ATtiny85 AVR
 
 - OLED code is derived from bitbang2's super fast code:
 https://github.com/bitbank2/oled_turbo
@@ -8,5 +10,5 @@ https://github.com/mikemalburg/arduino_annoyotrons_piezo/tree/master/annoy_piezo
 - Mario animation pixel art:
 https://www.hackster.io/138689/pixel-art-on-oled-display-7f8697
 
-BurnEEPROM_ATtiny85:
-Arduino sketch to burn the header table, music and sound effects to the ATTiny85 EEPROM  
+**BurnEEPROM_ATtiny85**
+Arduino sketch to compress the music and sound effects, then burn to ATTiny85 EEPROM  
