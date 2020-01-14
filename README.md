@@ -1,4 +1,8 @@
 # ATtiny85Mario
+
+Read about the software and hardware of ATtiny85Mario here:
+https://shepherdingelectrons.blogspot.com/2020/01/tinymario.html
+
 Mario-style game with sound effects and music on twin OLED displays driven by ATtiny85 AVR. Having fun with the multiple challenges of working with small system constraints! :-)
 
 A project (that will be detailed) on my blog https://shepherdingelectrons.blogspot.com/
