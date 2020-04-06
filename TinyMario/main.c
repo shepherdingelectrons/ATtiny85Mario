@@ -10,8 +10,8 @@
 #include "font_digits.h"
 #include "oled_lib.h"
 
+#define TEST_BUTTONS 1
 
-//#define TEST_BUTTONS 1
 
 struct music_table {
   uint16_t startpos;
@@ -66,6 +66,18 @@ const uint8_t music_seq[] = {0, 1, 1, 2, 3, 2, 4, 2, 3, 2, 4, 5}; // 12 elements
 
 #define MUSIC_SPEAKER 4 // IC pin 3: PB4, Timer 1, OC1B - MUSIC (was speaker)
 #define SOUNDEFFECT_SPEAKER 1// IC pin 6: PB1, Timer 0, OCOB - Sound effects (was speaker 2)
+
+#define LEFT_OLED_ADDRESS 0x3C;
+#define RIGHT_OLED_ADDRESS 0x3D; // swapped
+#define OLED_CONTRAST 0xFF //0x7F
+
+#define BUTTON_LEFT 4
+#define BUTTON_A 2
+#define BUTTON_RIGHT 1
+
+#define BUTTON2_DOWN 1
+#define BUTTON2_B 2
+#define BUTTON2_SELECT 4
 
 #define WORLD_MAX_LEN 63
 
@@ -149,7 +161,7 @@ void setup() {
 	fireball.state=dead;
 	
 	//analogReference(0); // 0 = Vcc as Aref (2 = 1.1v internal voltage reference)
-
+	
 	//pinMode(SPEAKER, OUTPUT);
 	//pinMode(SPEAKER2, OUTPUT);
 
@@ -190,26 +202,15 @@ void setup() {
 int main(void)
 {
 	static long loop_micros=0;
-	//int thingy=-7,thingvy=1;
+	
 	setup();
 	
 	sei();
-	/* Replace with your application code */
+	
 	while (1)
 	{
-		
-		//curr_seed++;// = (curr_seed*1664525 + 1013904223) % 65536; // next seed
-		
-		//vblankout(60,thingy,16); // blankout PREVIOUS position
-		//vblankout(60,thingy+8,16);
-		
-		/*thingy+=thingvy;
-		if (thingy<-30) thingvy=1;
-		else if (thingy>80) thingvy=-1;
-		
-		drawSprite(60,thingy,16,16,&mario_idle[0],0);*/
 		readbuttons();
-		
+
 		if (gamestate == normal)
 		{
 			handlemap_collisions(&mario); // Check for collisions with Mario and the world
@@ -290,15 +291,16 @@ int main(void)
 				rviewx_trigger += 16;
 			}
 
-		}
+		} // gamestate == normal
 
 		updateDisplay(0); // Draw screen
 		oledWriteInteger(10, 0, coincount);
-		//  oledWriteInteger(80, 0, mymicros/1000000L);
+		
 		drawCoin(0, 0);
 		updateDisplay(1);
 		
 		// 1E6 / fps
+		
 		if (gamestate == normal) handleMusic(&MusicController);
 		handleMusic(&SoundEffectController);
 	
@@ -308,6 +310,7 @@ int main(void)
 			handleMusic(&SoundEffectController);
 		}
 		loop_micros = mymicros;
+		
 	}
 
 }
@@ -329,6 +332,8 @@ uint16_t readADC(uint8_t adcpin)
 	//while (ADCSRA & (1<<ADSC)); // wait for ADSC bit to clear
 	
 	ADMUX = (adcpin & 7) << (MUX0); // REF bits are zero = Vcc as voltage reference
+	// ref = 0 : Vcc as voltage reference
+	// ref = (1<<REFS1) : 1.1 V internal as reference
 	ADCSRA = (1<<ADEN) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);// divide by 16 | (1<<ADPS1);// | (1<<ADPS0); // Enable ADC in general
 	
 	ADCSRA |= (1<<ADSC); // Start ADC conversion
@@ -382,7 +387,7 @@ void drawSprite(int16_t x, int16_t y, uint8_t w, uint8_t h, const unsigned char 
 
     //ssd1306_send_data_start();
 
-    // Copy into local buffer forwards or backswards, then pass on :)
+    // Copy into local buffer forwards or backwards, then pass on :)
 
     for (uint8_t i = xoff; i < xw; i++) // i.e. i goes 0 to 15 (across x axis) if not clipped
     {
@@ -392,13 +397,9 @@ void drawSprite(int16_t x, int16_t y, uint8_t w, uint8_t h, const unsigned char 
     }
 
     // cursor is incremented auto-magically to the right (x++) per write
-    //     if (flip==0) pos=buf+j+(i*write_height);
-    //   else pos=buf+j+((w-1-i)*write_height);
-
-    oledWriteDataBlock(temp, xw - xoff); // DUNCAN - rewrite to allow whole row at once!
-    //ssd1306_send_byte(pgm_read_byte(pos)); //DUNCAN
-
-    //ssd1306_send_stop();
+    
+    oledWriteDataBlock(temp, xw - xoff); 
+    
   }
 }
 
@@ -425,12 +426,11 @@ void spawnGoomba(uint16_t pos)
 		}	
 	}
 }
-void getWorld(uint16_t vx)//, uint8_t screen_num)
+void getWorld(uint16_t vx)
 {
   // vx is in units of bricks (i.e. vx/8), one screen is 16 wide
   
   uint8_t floor, gap=0;
-  //uint16_t screen_num = vx>>4; // divide by 16
   uint8_t cx = (vx & 63);
   
   floor = 5 + next_random(3);  // can be 5, 6 or 7
@@ -460,22 +460,7 @@ void getWorld(uint16_t vx)//, uint8_t screen_num)
 	} 
 	else gap--;
   }
-/*
-  for (i = cx; i < cx + w; i++) // cx is &WOLRD_MAX_LEN so cannot exceed 64.
-  {
-    //le = curr_seed & 0x07;
-    //curr_seed  = (curr_seed*1664525 + 1013904223) % 65536; // next seed
 
-    //element_ptr = (uint8_t *)levelelements[le];
-
-    for (j = 0; j < 4; j++) // 4 = width of level element
-    {
-      if ((i + j) <= WORLD_MAX_LEN) screen[i + j] = *(element_ptr + j); //pgm_read_byte(element_ptr+j);
-      else return;
-    }
-
-    i += 3; // width of level element - 1
-  }*/
 }
 
 void drawScreen()
@@ -493,8 +478,7 @@ void drawScreen()
   }
 
   if (xoffset != 0) stopi++; // Need to add an extra brick on the right because we are not drawing left brick fully
-  //if (stopi>WORLD_BUFFER) stopi=WORLD_BUFFER;
-
+  
   for (uint8_t i = starti; i < stopi; i++) // limit of 256
   {
     if (delta_viewx < 0) wrapped_i = (i + 1) & WORLD_MAX_LEN; // wrap round (could be WORLD_BUFFER - 1)
@@ -502,9 +486,6 @@ void drawScreen()
 
     coin = 0;
     if (screen[i & WORLD_MAX_LEN] & (1 << 0)) coin = 1;
-
-    //if ((screen[i & WORLD_MAX_LEN] & 0xFE) == 0b11100000) pipe++; // A pipe column (first or second...)
-    //else pipe = 0;
 
     for (uint8_t y = 1; y < 8; y++)
     {
@@ -516,7 +497,6 @@ void drawScreen()
         // but only if there isn't a block there.
         if (delta_viewx > 0)
           if (!(screen[wrapped_i] & (1 << y))) vblankout(xoffset - delta_viewx, y << 3, delta_viewx);
-
 
         if ((y == 5 || y == 6) && pipe != 0) // it's a pipe column
         {
@@ -839,6 +819,12 @@ void handlemap_collisions(struct character *player)
     celly = 0;  // means that a block is never found and mario can jump through the top of the screen!
     ybitmask = 0;
   }
+  else if (newmario_y>48) // can't fall off the bottom of the screen!
+  {
+	newmario_y = 48;
+	celly = 6;  
+	ybitmask = 0;
+  }
 
   //if (ybitmask == 1) {
 //    ybitmask = 0; // means no collisions with row0
@@ -976,9 +962,9 @@ void collidecoins(uint8_t cx, uint8_t celly, uint8_t yoffset)
         //vblankout((cx<<3)-(viewx & 127), coiny*8,16);
 
         // This function is only called when screen = 0, address 0x3D (left screen)
-        if (mario.x > (viewx + 128)) oled_addr = 0x3C; // right hand side screen
+        if (mario.x > (viewx + 128)) oled_addr = RIGHT_OLED_ADDRESS;//0x3C; // right hand side screen
         for (uint8_t x = 0; x < 8; x++) vblankout(x << 4, coiny * 8, 16);
-        oled_addr = 0x3D; //set address back to be safe
+        oled_addr = LEFT_OLED_ADDRESS;//0x3D; //set address back to be safe
       }
     }
   }
@@ -1110,48 +1096,24 @@ void readbuttons(void)
   uint16_t sensorValue, sensor2Value;
   uint8_t buttons,buttons2;
 
-  sensorValue = readADC(ADC3);//analogRead(A3); // was A2 / A3
   sensor2Value = 1023 - readADC(ADC0);
-
-#ifdef TEST_BUTTONS
-  uint8_t buf[10];
-
-  //oledFill(0);
-  itoa(pause_button, buf, 10);
-  oledWriteString(0, 0, buf);
-
-  itoa(pause_debounce, buf, 10);
-  oledWriteString(40, 0, buf);
-
-  itoa(gamestate, buf, 10);
-  oledWriteString(70, 0, buf);
-#endif
-
-  buttons = (sensorValue + (buttonBASE / 2)) / buttonBASE; //round(sensorValue/buttonBASE);
-  buttons2 = (sensor2Value + (button2BASE/2)) / button2BASE;
+  sensorValue = readADC(ADC3);
   
-//  oledWriteInteger(50,30,(uint8_t)sensor2Value);
-//  oledWriteInteger(50,40,(uint8_t)buttons2);
+  buttons = (sensorValue + (buttonBASE / 2)) / buttonBASE;
+  buttons2 = (sensor2Value + (button2BASE/2)) / button2BASE; 
   
   if (gamestate == normal) // can only move if not paused, etc.
   {
     // Moving (independent of jumping)
-    if (buttons & 1)
+    if (buttons & BUTTON_RIGHT)
     {
-      // if (mario.state!=right) {mario.vx++; mariosetvx=mario.vx;mario_acc_timer=30;}
-
       mario.state = right; mario.dir = faceright;
-      //mario_acc_timer++;if (mario_acc_timer>30 && mario.vx<3) {mario_acc_timer=0;mario.vx++;mariosetvx=mario.vx;}
-      //mario.vx=mariosetvx;
       mario.vx = 3;
     } // RIGHT
-    else if (buttons & 4)
+    else if (buttons & BUTTON_LEFT)
     {
-      //if (mario.state!=left) {mario.vx--;mariosetvx=mario.vx;mario_acc_timer=0;}
-
       mario.state = left; mario.dir = faceleft;
-      //mario_acc_timer++;if (mario_acc_timer>30 && mario.vx>-3) {mario_acc_timer=0;mario.vx--;mariosetvx=mario.vx;}
-      mario.vx = -3; //mariosetvx;
+      mario.vx = -3;
     } // LEFT
     else
     {
@@ -1160,9 +1122,8 @@ void readbuttons(void)
       else if (mario.vx < 0) mario.vx += 1;
     }
 
-
     // Jumping
-    if (buttons & 2 && mario.jumpstate == nojump) {
+    if ((buttons & BUTTON_A) && mario.jumpstate == nojump) {
       mario.vy = -7;  // Only start jumping if not currently jumping
       mario.jumpstate = jumpup;
       playSoundEffect(JUMP_SOUND);
@@ -1171,7 +1132,7 @@ void readbuttons(void)
     // Idle if not jumping and no keys pressed
     if (buttons == 0 && mario.jumpstate == nojump) mario.state = idle;
 	
-	if (buttons2 & 4) // Fire!!!
+	if (buttons2 & BUTTON2_B) // Fire!!!
 	{
 		if (fireball.state==dead)
 		{
@@ -1182,15 +1143,16 @@ void readbuttons(void)
 	}
   } // end gamestate == normal
 
-  if (buttons2 & 1)
+
+  if (buttons2 & BUTTON2_SELECT) 
   {
     if (gamestate == normal)
     {
       playSoundEffect(PAUSE_SOUND);
       oledWriteCommand2(0x81, 16);
-      oled_addr = 0x3C;
+      oled_addr = RIGHT_OLED_ADDRESS;//0x3C;
       oledWriteCommand2(0x81, 16);
-      oled_addr = 0x3D;
+      oled_addr = LEFT_OLED_ADDRESS;//0x3D;
       gamestate = paused;
     }
     else if (gamestate == paused_ready) {
@@ -1204,10 +1166,10 @@ void readbuttons(void)
   else if (gamestate == pause_return)
   {
     gamestate = normal;
-    oledWriteCommand2(0x81, 0x7F);
-    oled_addr = 0x3C;
-    oledWriteCommand2(0x81, 0x7F);
-    oled_addr = 0x3D;
+    oledWriteCommand2(0x81, OLED_CONTRAST);
+    oled_addr = RIGHT_OLED_ADDRESS;//0x3C;
+    oledWriteCommand2(0x81, OLED_CONTRAST);
+    oled_addr = LEFT_OLED_ADDRESS;//0x3D;
   }
 
 }
@@ -1215,9 +1177,7 @@ void readbuttons(void)
 void drawCoin(int sx, uint8_t sy)
 {
   // Do coin(s)
-  //  if (delta_viewx<0) vblankout(90-viewx+8,0,-delta_viewx);
-  //  else if (delta_viewx>0) vblankout(90-viewx-delta_viewx,0,delta_viewx);
-
+  
   if (delta_viewx < 0) vblankout(sx + 8, sy, -delta_viewx);
   else if (delta_viewx > 0) vblankout(sx - delta_viewx, sy, delta_viewx);
 
@@ -1231,30 +1191,22 @@ void drawCoin(int sx, uint8_t sy)
 
 void updateDisplay(uint8_t screen_id)
 {
- // static int bally=0, ballvy=1;
-  
+
   if (screen_id == 0) // Left screen
   {
     delta_viewx = old_viewx - viewx; // -ve means moving to right, +ve means moving to left.
     if (delta_viewx > 8) delta_viewx = 8; // Limit delta_viewx
     if (delta_viewx < -8) delta_viewx = -8;
-    oled_addr = 0x3D;
-
-   // vblankout(0,bally,8);
-    //bally+=ballvy;
-    //if (bally<0) {bally=0;ballvy=1;}
-    //else if (bally>56) {bally=55;ballvy=-1;}
-    
-    //drawSprite(0,bally,8,8,&block8x8[0],0);
+    oled_addr = LEFT_OLED_ADDRESS;//0x3D;
   }
   else // right hand screen  (0x3c)
   {
     viewx = viewx + 128;
-    oled_addr = 0x3C;
+    oled_addr = RIGHT_OLED_ADDRESS;//0x3C;
   }
 
   drawScreen(); // Draws level scenery, coins, etc.
-  
+   
   // Draw fireball, goomba and other sprites etc
   if (fireball.state!=dead)
   {
@@ -1282,7 +1234,7 @@ void updateDisplay(uint8_t screen_id)
   if (screen_id == 0) old_viewx = viewx; // left screen
   else {
     viewx = viewx - 128;  // restore previous viewx
-    oled_addr = 0x3D;
+    oled_addr = LEFT_OLED_ADDRESS;//0x3D;
   }
 }
 

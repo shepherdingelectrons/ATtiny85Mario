@@ -1,3 +1,6 @@
+// Modified from the excellent code here: https://github.com/bitbank2/oled_turbo
+// Shrink-ified to fit onto the ATtiny85 by [ShepherdingElectrons] 2020
+
 #include <avr/io.h>
 #include <string.h> /* memcpy */
 
@@ -10,29 +13,18 @@
 inline void i2cByteOut(uint8_t b) // This is only called from i2Cbegin, before tones are started so don't need to worry about
 {
   uint8_t i;
-  //byte bOld = I2CPORT & ~((1 << BB_SDA) | (1 << BB_SCL));
-
-  // DUNCAN  I2CPORT &= ~(1<< BB_SCL); //Toggle clock - Off - this is redundant because i2cbegin
-
-  // #define BB_SDA 0 // (1<<0) = 1
-  ///#define BB_SCL 2   // (1<<2) = 4
 
   CLEAR_SCL;
 
   for (i = 0; i < 8; i++)
   {
-    // I2CPORT &= ~(1 << BB_SDA);
     CLEAR_SDA;
     if (b & 0x80)
-      SET_SDA;//I2CPORT |= (1 << BB_SDA);
-
-    //I2CPORT = bOld
+      SET_SDA;
 
     SET_SCL;
     CLEAR_SCL;
-    //I2CPORT |= (1 << BB_SCL); // ON
-    //I2CPORT &= ~(1<< BB_SCL); //Toggle clock - Off
-
+    
     b <<= 1;
   } // for i
   // ack bit
@@ -41,23 +33,12 @@ inline void i2cByteOut(uint8_t b) // This is only called from i2Cbegin, before t
   SET_SCL;
   CLEAR_SCL;
 
-  //I2CPORT &= ~(1 << BB_SDA); // set data low
-  //I2CPORT |= (1 << BB_SCL); // toggle clock
-  //I2CPORT &= ~(1 << BB_SCL); // toggle clock
-
-
 } /* i2cByteOut() */
 
 void i2cBegin(uint8_t addr)
 {
-  /*I2CPORT |= ((1 << BB_SDA) + (1 << BB_SCL));
-    I2CDDR |= ((1 << BB_SDA) + (1 << BB_SCL));
-    I2CPORT &= ~(1 << BB_SDA); // data line low first
-    I2CPORT &= ~(1 << BB_SCL); // then clock line low is a START signal
-  */
   SET_SDA;
   SET_SCL;
-  //I2CDDR |= ((1 << BB_SDA) + (1 << BB_SCL)); // ASM THIS...
 
   OUTPUT_SDA;
   OUTPUT_SCL;
@@ -71,48 +52,35 @@ void i2cBegin(uint8_t addr)
 void i2cWrite(uint8_t *pData, uint8_t bLen)
 {
   uint8_t i, b;
-  //byte bOld = I2CPORT & ~((1 << BB_SDA) | (1 << BB_SCL)); // PORTB with SDA and SCL off
 
   while (bLen--)
   {
     b = *pData++;
     if (b == 0 || b == 0xff) // special case can save time
     {
-      //I2CPORT &= ~(1 << BB_SDA); // switches off SDA in bOld
       CLEAR_SDA;
 
       if (b & 0x80)
-        SET_SDA;//I2CPORT |= (1 << BB_SDA); // switches on SDA in bOld
-      //I2CPORT = bOld; // sets PORTB to bOld (SDA is set)
-
-      //I2CPORT &= ~(1<< BB_SCL); // Toggle clock OFF
+        SET_SDA;
+		
       CLEAR_SCL;
 
       for (i = 0; i < 8; i++)
       {
-        //I2CPORT |= (1 << BB_SCL); // SCL = ON, SDA stays the same
-        //I2CPORT &= ~(1<< BB_SCL); // Toggle clock on and off
         SET_SCL;
         CLEAR_SCL;
       } // for i
     }
     else // normal byte needs every bit tested
     {
-      //I2CPORT &= ~(1<< BB_SCL); // Toggle clock OFF
       CLEAR_SCL;
 
       for (i = 0; i < 8; i++)
       {
-
-        //I2CPORT &= ~(-1 << BB_SDA);
         CLEAR_SDA;
         if (b & 0x80)
-          SET_SDA; //I2CPORT |= (1 << BB_SDA);
+          SET_SDA;
 
-        //I2CPORT = bOld;
-
-        //I2CPORT |= (1 << BB_SCL);// Turn on
-        //I2CPORT &= ~(1<< BB_SCL); // Toggle clock on and off
         SET_SCL;
         CLEAR_SCL;
 
@@ -120,11 +88,7 @@ void i2cWrite(uint8_t *pData, uint8_t bLen)
       } // for i
 
     }
-    // ACK bit seems to need to be set to 0, but SDA line doesn't need to be tri-state
-    //I2CPORT &= ~(1 << BB_SDA);
-    //I2CPORT |= (1 << BB_SCL); // toggle clock
-    //I2CPORT &= ~(1 << BB_SCL);
-
+    
     CLEAR_SDA;
     SET_SCL;
     CLEAR_SCL;
@@ -136,15 +100,10 @@ void i2cWrite(uint8_t *pData, uint8_t bLen)
 //
 void i2cEnd()
 {
-  /*I2CPORT &= ~(1 << BB_SDA);
-    I2CPORT |= (1 << BB_SCL);
-    I2CPORT |= (1 << BB_SDA);*/
-
+ 
   CLEAR_SDA;
   SET_SCL;
   SET_SDA;
-
-  //I2CDDR &= ((1 << BB_SDA) | (1 << BB_SCL)); // let the lines float (tri-state)
 
   asm("cbi 0x17, 2\n");   // 0x17 = DDRB &= ~(1<<2);
   asm("cbi 0x18, 0\n");  // DDRB &= ~(1<<0);
@@ -225,12 +184,10 @@ void oledSetContrast(unsigned char ucContrast)
 //
 void oledSetPosition(int x, int y)
 {
-
   ////ssd1306_send_command3(renderingFrame | (y >> 3), 0x10 | ((x & 0xf0) >> 4), x & 0x0f);
   /* oledWriteCommand(0xb0 | (y >> 3));  //x); // go to page Y
     oledWriteCommand(0x10 | ((x & 0xf)>>4)); // upper col addr
     oledWriteCommand(0x00 | (x  & 0xf)); // // lower col addr*/
-
 
   oledWriteCommand(0xb0 | y >> 3); // go to page Y
   oledWriteCommand(0x00 | (x & 0xf)); // // lower col addr
