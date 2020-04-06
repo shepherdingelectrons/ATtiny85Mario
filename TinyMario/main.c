@@ -426,6 +426,10 @@ void spawnGoomba(uint16_t pos)
 		}	
 	}
 }
+
+// getWorld function is inspired by the "Map::GenerateRoom" function in the Squario project on the Arduboy, found here:
+// https://github.com/arduboychris/Squario/blob/master/SquarioGame.cpp
+
 void getWorld(uint16_t vx)
 {
   // vx is in units of bricks (i.e. vx/8), one screen is 16 wide
@@ -822,13 +826,12 @@ void handlemap_collisions(struct character *player)
   else if (newmario_y>48) // can't fall off the bottom of the screen!
   {
 	newmario_y = 48;
+	player->vy = 0;
+	
 	celly = 6;  
 	ybitmask = 0;
   }
 
-  //if (ybitmask == 1) {
-//    ybitmask = 0; // means no collisions with row0
- // }
  ybitmask&=~(1<<0); // means no collisions with row0
 
   uint8_t check_cell, check_cell2;
