@@ -1,11 +1,18 @@
 # ATtiny85Mario
 
+![ATtiny85 Mario](https://1.bp.blogspot.com/-czGPkAP6zps/XhzPi6E_isI/AAAAAAAAA2w/S9NqXxgfAWMCNwzo1DuLqfwZ18h-fWzTQCLcBGAsYHQ/s1600/Mario_ATtiny85.jpg)
+
 Read about the software and hardware of ATtiny85Mario here:
 https://shepherdingelectrons.blogspot.com/2020/01/tinymario.html
 
+and the construction of a handset to play ATtiny85Mario in:
+https://shepherdingelectrons.blogspot.com/2020/03/attiny-mario-handset.html
+
+![mario animation](https://1.bp.blogspot.com/-wQc9w1t_zNc/Xm0aSpYDvUI/AAAAAAAAA5U/FX9NpMwJBkk7XVnXdGtJghxoaZgVtxxPwCLcBGAsYHQ/s1600/mario_gif2.gif)
+
 Mario-style game with sound effects and music on twin OLED displays driven by ATtiny85 AVR. Having fun with the multiple challenges of working with small system constraints! :-)
 
-A project (that will be detailed) on my blog https://shepherdingelectrons.blogspot.com/
+
 
 **TinyMario**
 Source code for Mario.  For music and sound effects to work, the EEPROM must be correctly burned first (see BurnEEPROM_ATtiny85 sketch)
