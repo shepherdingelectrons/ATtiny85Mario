@@ -6,6 +6,7 @@ Read about the software and hardware of ATtiny85Mario here:
 https://shepherdingelectrons.blogspot.com/2020/01/tinymario.html
 
 and the construction of a handset to play ATtiny85Mario in:
+
 https://shepherdingelectrons.blogspot.com/2020/03/attiny-mario-handset.html
 
 ![mario animation](https://1.bp.blogspot.com/-wQc9w1t_zNc/Xm0aSpYDvUI/AAAAAAAAA5U/FX9NpMwJBkk7XVnXdGtJghxoaZgVtxxPwCLcBGAsYHQ/s1600/mario_gif2.gif)
